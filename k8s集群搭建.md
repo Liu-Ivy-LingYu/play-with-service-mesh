@@ -64,41 +64,41 @@ systemctl status containerd
 ```bash
 cat /etc/containerd/config.toml | grep systemd
 ```
-        - 现象：该文件不存在
+- 现象：该文件不存在
 
-        - 原因：可能是因为 containerd 使用了默认配置，或者配置文件被生成到了其他位置
+- 原因：可能是因为 containerd 使用了默认配置，或者配置文件被生成到了其他位置
 
-        - 解决：
+- 解决：
 
-        1. 生成默认的配置文件
+1. 生成默认的配置文件
 
-        ```bash
-        containerd config default > /etc/containerd/config.toml
-        ```
+```bash
+containerd config default > /etc/containerd/config.toml
+```
 
-        *检查 containerd 的实际配置路径,在某些情况下，containerd 可能将配置文件存储在其他位置。你可以通过以下方式查找实际的配置文件路径：查看 containerd 的 systemd 配置文件，确认是否有自定义的配置文件路径:*
+*检查 containerd 的实际配置路径,在某些情况下，containerd 可能将配置文件存储在其他位置。你可以通过以下方式查找实际的配置文件路径：查看 containerd 的 systemd 配置文件，确认是否有自定义的配置文件路径:*
 
-        ```bash
-        cat /lib/systemd/system/containerd.service
-        ```
+```bash
+cat /lib/systemd/system/containerd.service
+```
 
-        *重点检查 ExecStart 参数，可能会看到类似以下的配置：*
+*重点检查 ExecStart 参数，可能会看到类似以下的配置：*
 
-        ```bash
-        ExecStart=/usr/bin/containerd --config /path/to/config.toml
-        ```
+```bash
+ExecStart=/usr/bin/containerd --config /path/to/config.toml
+```
 
-        2. 修改配置文件以启用 CRI
+2. 修改配置文件以启用 CRI
 
-        重点检查以下内容：
+重点检查以下内容：
 
-                - 确保 **[plugins."io.containerd.grpc.v1.cri"]** 部分存在且未被注释。
+        - 确保 **[plugins."io.containerd.grpc.v1.cri"]** 部分存在且未被注释。
 
-                - 确保 **sandbox_image** 配置正确（默认值为 k8s.gcr.io/pause:3.6）
+        - 确保 **sandbox_image** 配置正确（默认值为 k8s.gcr.io/pause:3.6）
 
-                **把sandbox_image改成了阿里云的pause镜像**
+        **把sandbox_image改成了阿里云的pause镜像**
 
-        保存后重启 containerd：sudo systemctl restart containerd
+保存后重启 containerd：sudo systemctl restart containerd
 
 
 *到这里可以确认containerd正常运行*
@@ -117,84 +117,84 @@ crictl --runtime-endpoint unix:///run/containerd/containerd.sock pods
 crictl --runtime-endpoint unix:///run/containerd/containerd.sock info
 ```
 
-        - 现象：返回cni config load failed: no network config found in /etc/cni/net.d: cni plugin not initialized: failed to load cni config
+- 现象：返回cni config load failed: no network config found in /etc/cni/net.d: cni plugin not initialized: failed to load cni config
 
-        - 原因：这表明 Kubernetes 的 CNI（Container Network Interface）网络配置缺失或未正确初始化。CNI 是 Kubernetes 中用于管理 Pod 网络的关键组件，缺少网络配置会导致 Pod 无法启动。
+- 原因：这表明 Kubernetes 的 CNI（Container Network Interface）网络配置缺失或未正确初始化。CNI 是 Kubernetes 中用于管理 Pod 网络的关键组件，缺少网络配置会导致 Pod 无法启动。
 
-        - 错误信息表明：
+- 错误信息表明：
 
-                - CNI 配置文件缺失：/etc/cni/net.d 目录下没有网络配置文件。
+        - CNI 配置文件缺失：/etc/cni/net.d 目录下没有网络配置文件。
 
-                - CNI 插件未初始化。
+        - CNI 插件未初始化。
 
-        在 Kubernetes 中，CNI 配置文件通常位于 /etc/cni/net.d，并且需要安装一个网络插件（如 Flannel、Calico 等）来提供网络功能。
+在 Kubernetes 中，CNI 配置文件通常位于 /etc/cni/net.d，并且需要安装一个网络插件（如 Flannel、Calico 等）来提供网络功能。
 
-        安装CNI网络插件的时候提示*The connection to the server localhost:8080 was refused - did you specify the right host or port?*
+安装CNI网络插件的时候提示*The connection to the server localhost:8080 was refused - did you specify the right host or port?*
 
-        这表明 **kubectl 无法连接到 Kubernetes API 服务器**。通常，这种问题是由于 kubectl 的配置文件（~/.kube/config）丢失或配置错误导致的。
+这表明 **kubectl 无法连接到 Kubernetes API 服务器**。通常，这种问题是由于 kubectl 的配置文件（~/.kube/config）丢失或配置错误导致的。
 
 - 检查kubelet日志：
 ```bash
 journalctl -u kubelet -f
 ```
 
-        - 现象： 命令提示：container runtime network not ready" networkReady="NetworkReady=false reason:NetworkPluginNotReady message:Network plugin returns error: cni plugin not initialized"
+- 现象： 命令提示：container runtime network not ready" networkReady="NetworkReady=false reason:NetworkPluginNotReady message:Network plugin returns error: cni plugin not initialized"
 
-        - 原因： 这表明 Kubernetes 的 CNI（Container Network Interface）网络插件未正确初始化。CNI 是 Kubernetes 中用于管理 Pod 网络的关键组件，缺少或未正确配置 CNI 插件会导致此问题。
+- 原因： 这表明 Kubernetes 的 CNI（Container Network Interface）网络插件未正确初始化。CNI 是 Kubernetes 中用于管理 Pod 网络的关键组件，缺少或未正确配置 CNI 插件会导致此问题。
 
-        错误信息表明：
+错误信息表明：
 
-                - CNI 插件未初始化。
+- CNI 插件未初始化。
 
-                - 网络未准备好，导致 Kubernetes 无法正常运行 Pod。
+- 网络未准备好，导致 Kubernetes 无法正常运行 Pod。
 
-        Kubernetes 的网络插件通常需要一个配置文件（位于 /etc/cni/net.d）和一个 CNI 插件二进制文件（通常位于 /opt/cni/bin）。
+Kubernetes 的网络插件通常需要一个配置文件（位于 /etc/cni/net.d）和一个 CNI 插件二进制文件（通常位于 /opt/cni/bin）。
 
-        检查 /etc/cni/net.d 目录
-        运行以下命令检查 /etc/cni/net.d 目录下是否有配置文件：
+检查 /etc/cni/net.d 目录
+运行以下命令检查 /etc/cni/net.d 目录下是否有配置文件：
 
-        bash
-        ls -l /etc/cni/net.d
+bash
+ls -l /etc/cni/net.d
 
-        如果目录为空或没有配置文件：
-        你需要手动创建一个默认的 CNI 配置文件。
+如果目录为空或没有配置文件：
+你需要手动创建一个默认的 CNI 配置文件。
 
-        创建默认的 Flannel CNI 配置文件
-        运行以下命令创建一个默认的 Flannel 配置文件：
+创建默认的 Flannel CNI 配置文件
+运行以下命令创建一个默认的 Flannel 配置文件：
 
-        ```bash
-        mkdir -p /etc/cni/net.d
-        cat <<EOF | sudo tee /etc/cni/net.d/10-flannel.conflist
-        {
-        "name": "cbr0",
-        "cniVersion": "0.3.1",
-        "plugins": [
-        {
-        "type": "flannel",
-        "delegate": {
-                "isDefaultGateway": true
-        }
-        },
-        {
-        "type": "portmap",
-        "capabilities": {
-                "portMappings": true
-        }
-        }
-        ]
-        }
-        EOF
-        ```
-        ​检查 CNI 插件二进制文件
-        Kubernetes 的 CNI 插件需要二进制文件来执行网络操作。这些文件通常位于 /opt/cni/bin。
+```bash
+mkdir -p /etc/cni/net.d
+cat <<EOF | sudo tee /etc/cni/net.d/10-flannel.conflist
+{
+"name": "cbr0",
+"cniVersion": "0.3.1",
+"plugins": [
+{
+"type": "flannel",
+"delegate": {
+        "isDefaultGateway": true
+}
+},
+{
+"type": "portmap",
+"capabilities": {
+        "portMappings": true
+}
+}
+]
+}
+EOF
+```
+​检查 CNI 插件二进制文件
+Kubernetes 的 CNI 插件需要二进制文件来执行网络操作。这些文件通常位于 /opt/cni/bin。
 
-        检查 /opt/cni/bin 目录
-        运行以下命令检查 /opt/cni/bin 目录下是否有 CNI 插件：
+检查 /opt/cni/bin 目录
+运行以下命令检查 /opt/cni/bin 目录下是否有 CNI 插件：
 
-        bash
-        ls -l /opt/cni/bin
+bash
+ls -l /opt/cni/bin
 
-        *这个目录下是有内容的*
+*这个目录下是有内容的*
 
 - 检查 kubectl 配置文件
 kubectl 使用 ~/.kube/config 文件连接到 Kubernetes API 服务器。如果该文件丢失或配置错误，kubectl 将无法连接到 API 服务器。
@@ -265,8 +265,8 @@ server: https://<master-ip>:6443
 *这边我改了一下master-ip，后面证明不该改这个*
 
 - 检查防火墙设置 & 证书是否有效
+关闭防火墙：ufw allow 6443/tcp
 
-防火墙已经查过了，证书没查
 
 - 这个时候我突然福至心灵，觉得可以重新运行一下kubeadm init，于是我执行了一下kubeadm reset，很快就出现了如下结果：
 ```bash
