@@ -393,6 +393,26 @@ sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
 sudo chown $(id -u):$(id -g) $HOME/.kube/config
 ```
 
-#### 6
-安装flannel插件后，kubectl get pod返回"The connection to the server localhost:8080 was refused - did you specify the right host or port?"
+#### 6 Set cgroup driver to systemd on all the nodes
+Edit the file ‘/etc/containerd/config.toml’ and look for the section ‘[plugins.”io.containerd.grpc.v1.cri”.containerd.runtimes.runc.options]’ and change ‘SystemdCgroup = false’ to ‘SystemdCgroup = true‘
+[How to Install Kubernetes Cluster on Debian 12 | 11](https://www.linuxtechi.com/install-kubernetes-cluster-on-debian/)
 
+*20250406现在只剩下cni plugin not initialized的问题*
+除了上面那个改动，还disable swap了（需要重启kubelet）
+
+
+#### trouble shoot 
+[k8s官方文档](https://kubernetes.io/docs/setup/production-environment/tools/kubeadm/troubleshooting-kubeadm/#ebtables-or-some-similar-executable-not-found-during-installation)
+
+- Pods are not accessible via their Service IP
+许多网络附加组件尚未启用hairpin mode，该模式允许 pod 通过其服务 IP 访问自身。
+
+- coredns pods have CrashLoopBackOff or Error state
+
+#### 创建k8s 集群
+https://kubernetes.io/docs/setup/production-environment/tools/kubeadm/create-cluster-kubeadm/
+
+
+
+#### debug
+[判断pod的haipin mode](https://kubernetes.io/docs/tasks/debug/debug-application/debug-service/#a-pod-fails-to-reach-itself-via-the-service-ip)
